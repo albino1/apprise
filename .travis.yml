@@ -1,6 +1,5 @@
 language: python
 
-
 matrix:
   include:
     - python: "2.7"
@@ -25,6 +24,9 @@ install:
   - pip install codecov tox
   - pip install -r dev-requirements.txt
   - pip install -r requirements.txt
+  # dbus-python is used for qt://, kde://, glib://, and dbus:// unittests
+  # see test/test_glib_plugin.py for more details
+  - pip install dbus-python
 
 
 # run tests
