@@ -38,6 +38,8 @@ from apprise import NotifyImageSize
 from apprise import __version__
 from apprise.Apprise import __load_matrix
 import pytest
+import requests
+import mock
 
 
 def test_apprise():
@@ -223,6 +225,53 @@ def test_apprise():
     assert(a.instantiate(
         'throw://localhost', suppress_exceptions=True) is None)
     assert(len(a) == 0)
+
+
+@mock.patch('requests.get')
+@mock.patch('requests.post')
+def test_apprise_tagging(mock_post, mock_get):
+    """
+    API: Apprise() object tagging functionality
+
+    """
+
+    # A request
+    robj = mock.Mock()
+    setattr(robj, 'raw', mock.Mock())
+    # Allow raw.read() calls
+    robj.raw.read.return_value = ''
+    robj.text = ''
+    robj.content = ''
+    mock_get.return_value = robj
+    mock_post.return_value = robj
+
+    # Simulate a successful notification
+    mock_get.return_value.status_code = requests.codes.ok
+    mock_post.return_value.status_code = requests.codes.ok
+
+    # Create our object
+    a = Apprise()
+
+    # Add entry and assign it to a tag called 'awesome'
+    assert(a.add('json://localhost/path1/', tag='awesome') is True)
+
+    # Add another notification and assign it to a tag called 'awesome'
+    # and another tag called 'local'
+    assert(a.add('json://localhost/path2/', tag=['mmost', 'awesome']) is True)
+
+    # notify the awesome tag; this would notify both services behind the
+    # scenes
+    assert(a.notify(title="my title", body="my body", tag='awesome') is True)
+
+    # notify all of the tags
+    assert(a.notify(
+        title="my title", body="my body", tag=['awesome', 'mmost']) is True)
+
+    # there is nothing to notify using tags 'missing'. However we intentionally
+    # don't fail as there is value in identifying a tag that simply have
+    # nothing to notify from while the object itself contains items
+    assert(a.notify(
+        title="my title", body="my body", tag='missing') is True)
 
 
 def test_apprise_notify_formats(tmpdir):
